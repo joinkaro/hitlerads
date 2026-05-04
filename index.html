@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hitler Ads — Ad Spend Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0c0c14;--bg2:#13131e;--bg3:#1b1b28;--bg4:#23232f;
+  --border:#252535;--border2:#2e2e42;
+  --text:#f2f2ff;--text2:#8888aa;--text3:#484868;
+  --accent:#5b52ff;--accent2:#7c75ff;--accent3:#3e38cc;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--cyan:#06b6d4;--pink:#ec4899;
+  --card:#13131e;--cb:#1c1c2a;
+  --sw:250px;--r:10px;
+}
+[data-theme=light]{
+  --bg:#f1f1f7;--bg2:#fff;--bg3:#eaeaf2;--bg4:#dddde8;
+  --border:#dcdcec;--border2:#ccccd8;
+  --text:#0c0c1e;--text2:#44446e;--text3:#8888a8;
+  --card:#fff;--cb:#eaeaf2;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,sans-serif;font-weight:600;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .25s,color .25s;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* AUTH */
+#auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:2000;padding:16px}
+.auth-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:16px;padding:40px 32px;width:100%;max-width:400px;box-shadow:0 0 60px rgba(91,82,255,.2)}
+.auth-logo{font-size:28px;font-weight:900;letter-spacing:-1px;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.auth-sub{color:var(--text2);font-size:13px;font-weight:700;margin-bottom:28px}
+.a-lbl{font-size:11px;font-weight:800;color:var(--text2);display:block;margin-bottom:7px;text-transform:uppercase;letter-spacing:.6px}
+.a-inp{width:100%;padding:12px 14px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;font-weight:700;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
+.a-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,82,255,.15)}
+.a-err{color:var(--red);font-size:13px;font-weight:700;margin-bottom:12px;display:none}
+.btn-login{width:100%;padding:13px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;transition:background .15s,transform .1s}
+.btn-login:hover{background:var(--accent2)}
+.btn-login:active{transform:scale(.98)}
+.a-field{margin-bottom:16px}
+
+/* LAYOUT */
+#app{display:none;min-height:100vh}
+#app.visible{display:flex}
+
+/* SIDEBAR */
+.sidebar{width:var(--sw);min-height:100vh;background:var(--bg2);border-right:1.5px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:300;transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.s-logo{padding:20px 18px 14px;border-bottom:1.5px solid var(--border)}
+.logo-t{font-size:22px;font-weight:900;letter-spacing:-0.8px;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-s{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.s-user{padding:13px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:10px}
+.s-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--pink));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0}
+.s-uname{font-size:13px;font-weight:800}
+.s-urole{font-size:11px;font-weight:700;color:var(--text2)}
+.s-nav{flex:1;padding:10px 0;overflow-y:auto}
+.nav-sec{padding:10px 18px 4px;font-size:10px;font-weight:800;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 18px;margin:1px 8px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:14px;font-weight:800;transition:all .15s;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(91,82,255,.13);color:var(--accent2)}
+.nav-item.active::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 2px 2px 0}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.s-bot{padding:12px 8px;border-top:1.5px solid var(--border)}
+.btn-out{width:100%;padding:10px 14px;background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s}
+.btn-out:hover{background:rgba(239,68,68,.1);border-color:var(--red);color:var(--red)}
+
+/* MAIN */
+.main{margin-left:var(--sw);flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--bg2);border-bottom:1.5px solid var(--border);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:12px}
+.tb-left{display:flex;align-items:center;gap:12px}
+.tb-title{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.ib{width:36px;height:36px;border-radius:8px;background:var(--bg3);border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2);transition:all .15s;font-family:inherit}
+.ib:hover{background:var(--bg4);color:var(--text)}
+.hamburger{display:none}
+.content{padding:20px;flex:1}
+
+/* PAGES */
+.page{display:none;animation:fu .25s ease}
+.page.active{display:block}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:16px}
+.sc{background:var(--card);border:1.5px solid var(--cb);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;transition:transform .2s}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:linear-gradient(90deg,var(--accent),var(--cyan))}
+.sc:hover{transform:translateY(-2px)}
+.sc-lbl{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.sc-val{font-size:22px;font-weight:900;letter-spacing:-.5px;line-height:1}
+.sc-sub{font-size:11px;font-weight:700;color:var(--text3);margin-top:4px}
+.sc-badge{position:absolute;top:13px;right:11px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800}
+.bg{background:rgba(34,197,94,.15);color:var(--green)}
+.by{background:rgba(245,158,11,.15);color:var(--yellow)}
+.bp{background:rgba(91,82,255,.15);color:var(--accent2)}
+.bc{background:rgba(6,182,212,.15);color:var(--cyan)}
+
+/* CARD */
+.card{background:var(--card);border:1.5px solid var(--cb);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.c-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.c-title{font-size:15px;font-weight:900;letter-spacing:-.2px}
+.c-sub{font-size:12px;font-weight:700;color:var(--text2);margin-top:2px}
+
+/* FILTERS */
+.frow{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:6px;flex:1;min-width:130px}
+.fg label{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.fi{padding:9px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:700;font-family:inherit;outline:none;transition:border-color .2s;width:100%}
+.fi:focus{border-color:var(--accent)}
+.fi option{background:var(--bg2);font-weight:700}
+
+/* BUTTONS */
+.btn{padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:800;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-a{background:var(--accent);color:#fff}
+.btn-a:hover{background:var(--accent2)}
+.btn-g{background:var(--bg3);color:var(--text2);border:1.5px solid var(--border)}
+.btn-g:hover{background:var(--bg4);color:var(--text)}
+.btn-r{background:rgba(239,68,68,.12);color:var(--red);border:1.5px solid rgba(239,68,68,.25)}
+.btn-r:hover{background:rgba(239,68,68,.22)}
+.btn-gr{background:rgba(34,197,94,.12);color:var(--green);border:1.5px solid rgba(34,197,94,.25)}
+.btn-gr:hover{background:rgba(34,197,94,.22)}
+.btn-y{background:rgba(245,158,11,.12);color:var(--yellow);border:1.5px solid rgba(245,158,11,.25)}
+.btn-y:hover{background:rgba(245,158,11,.22)}
+.btn-sm{padding:7px 12px;font-size:12px}
+.btn-xs{padding:5px 9px;font-size:11px;border-radius:6px}
+
+/* TABLE */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{border-bottom:2px solid var(--border2)}
+th{padding:9px 11px;text-align:left;font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+td{padding:11px 11px;border-bottom:1px solid var(--border);color:var(--text);font-weight:700;white-space:nowrap;vertical-align:middle}
+tr:hover td{background:var(--bg3)}
+.tda{display:flex;gap:5px;align-items:center}
+
+/* FORM */
+.fg2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.fgrp{display:flex;flex-direction:column;gap:6px}
+.fgrp label{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.finp{padding:11px 13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-weight:700;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
+.finp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,82,255,.12)}
+.finp option{background:var(--bg2);font-weight:700}
+select.finp[multiple]{height:90px}
+
+/* CURRENCY */
+.crow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.ccheck{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;font-size:14px;font-weight:800;background:var(--bg3);transition:all .15s;user-select:none}
+.ccheck input{display:none}
+.ccheck.sel{border-color:var(--accent);background:rgba(91,82,255,.1);color:var(--accent2)}
+.csec{display:none}
+.csec.vis{display:block}
+.ssec{background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;padding:14px;margin-top:12px}
+.ssec-t{font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.calc-p{font-size:12px;font-weight:700;color:var(--text2);margin-top:8px;padding:9px 12px;background:var(--bg4);border-radius:7px;line-height:1.8}
+.calc-p span{color:var(--accent2);font-weight:800}
+.calc-p b{color:var(--green)}
+.f-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+
+/* VIEW TABS */
+.vtabs{display:flex;gap:3px;background:var(--bg3);border-radius:9px;padding:4px;margin-bottom:18px;width:fit-content;max-width:100%}
+.vtab{padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:800;color:var(--text2);transition:all .15s;border:none;background:none;font-family:inherit}
+.vtab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 5px rgba(0,0,0,.2)}
+
+/* CHARTS */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:16px}
+.ccard{background:var(--card);border:1.5px solid var(--cb);border-radius:var(--r);padding:18px}
+.ctitle{font-size:13px;font-weight:900;margin-bottom:14px;text-transform:uppercase;letter-spacing:.3px}
+.cwrap{position:relative;height:200px}
+
+/* INSIGHTS */
+.igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:16px}
+.ic{background:var(--card);border:1.5px solid var(--cb);border-radius:var(--r);padding:16px;position:relative}
+.ii{font-size:24px;margin-bottom:8px}
+.it{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.iv{font-size:16px;font-weight:900;margin-bottom:3px;letter-spacing:-.3px}
+.is{font-size:11px;font-weight:700;color:var(--text2)}
+.ib2{position:absolute;top:12px;right:12px;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;background:rgba(91,82,255,.15);color:var(--accent2);letter-spacing:.3px}
+
+/* USERS */
+.ucard{background:var(--card);border:1.5px solid var(--cb);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.uav{width:42px;height:42px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--pink));display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff}
+.u-info{flex:1;min-width:0}
+.u-nm{font-size:14px;font-weight:800}
+.u-mt{font-size:11px;font-weight:700;color:var(--text2);margin-top:3px;word-break:break-word}
+.u-acts{display:flex;gap:8px;flex-wrap:wrap}
+.rbadge{display:inline-flex;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:800;margin-left:6px}
+.ra{background:rgba(91,82,255,.15);color:var(--accent2)}
+.ru{background:rgba(6,182,212,.15);color:var(--cyan)}
+
+/* SETTINGS */
+.ss{margin-bottom:24px}
+.ss-t{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--border)}
+.srow{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);gap:14px;flex-wrap:wrap}
+.sl{font-size:14px;font-weight:800}
+.sd{font-size:12px;font-weight:700;color:var(--text2);margin-top:3px}
+
+/* CATEGORY LIST — EDIT/DELETE */
+.cat-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.cat-item{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;gap:10px}
+.cat-name{font-size:14px;font-weight:800;flex:1;min-width:0;word-break:break-word}
+.cat-acts{display:flex;gap:6px;flex-shrink:0}
+.add-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.add-row .fi{flex:1;min-width:150px}
+
+/* MODAL */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:600;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.moverlay.open{display:flex}
+.modal{background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;padding:24px;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;animation:fu .2s ease}
+.mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.m-title{font-size:17px;font-weight:900}
+.m-close{background:var(--bg3);border:1.5px solid var(--border);border-radius:7px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;color:var(--text2);transition:all .15s;font-family:inherit}
+.m-close:hover{background:var(--bg4);color:var(--text)}
+
+/* MULTI SELECT DISPLAY */
+.ms-wrap{position:relative}
+.ms-trigger{width:100%;padding:11px 13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:border-color .2s}
+.ms-trigger:focus,.ms-trigger.open{border-color:var(--accent);outline:none}
+.ms-trigger span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-arrow{font-size:10px;flex-shrink:0;transition:transform .2s}
+.ms-trigger.open .ms-arrow{transform:rotate(180deg)}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1.5px solid var(--border2);border-radius:8px;z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.3);display:none}
+.ms-dropdown.open{display:block}
+.ms-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:700;transition:background .1s}
+.ms-opt:hover{background:var(--bg3)}
+.ms-opt.checked{color:var(--accent2)}
+.ms-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;transition:all .15s}
+.ms-opt.checked .ms-check{background:var(--accent);border-color:var(--accent)}
+.ms-sel-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ms-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:rgba(91,82,255,.15);color:var(--accent2);font-size:11px;font-weight:800}
+.ms-tag-del{cursor:pointer;font-size:12px;opacity:.7;transition:opacity .15s}
+.ms-tag-del:hover{opacity:1}
+.ms-all-none{display:flex;gap:6px;padding:8px 14px 4px;border-bottom:1px solid var(--border)}
+.ms-all-none button{background:none;border:none;font-size:11px;font-weight:800;color:var(--text2);cursor:pointer;font-family:inherit;padding:0}
+.ms-all-none button:hover{color:var(--accent2)}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg2);border:1.5px solid var(--border2);border-radius:10px;padding:12px 20px;font-size:14px;font-weight:800;box-shadow:0 4px 20px rgba(0,0,0,.4);opacity:0;transition:all .3s;z-index:9999;display:flex;align-items:center;gap:10px;white-space:nowrap;max-width:calc(100vw - 32px)}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.success{border-color:var(--green)}
+#toast.error{border-color:var(--red)}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 16px;color:var(--text3)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-t{font-size:16px;font-weight:900;color:var(--text2);margin-bottom:6px}
+
+/* OVERLAY */
+.obg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200}
+.obg.show{display:block}
+
+.hl{background:rgba(34,197,94,.07)!important}
+
+/* ══════════ MOBILE — HIGH PRIORITY ══════════ */
+@media(max-width:768px){
+  :root{--sw:0px}
+  .sidebar{transform:translateX(-100%);width:260px;box-shadow:4px 0 30px rgba(0,0,0,.6)}
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:flex!important}
+  .main{margin-left:0!important}
+
+  .topbar{padding:11px 14px}
+  .tb-title{font-size:15px}
+  .content{padding:12px}
+
+  /* Stats: 2 col */
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .sc-val{font-size:18px}
+  .sc-lbl{font-size:10px}
+
+  /* Insights: 2 col */
+  .igrid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .iv{font-size:14px}
+
+  /* Charts: 1 col */
+  .cgrid{grid-template-columns:1fr;gap:12px}
+  .cwrap{height:180px}
+
+  /* Form */
+  .fg2{grid-template-columns:1fr}
+
+  /* Filters */
+  .frow{flex-direction:column;gap:10px}
+  .fg{min-width:unset}
+
+  /* Card */
+  .card{padding:14px}
+  .c-hdr{flex-direction:column;align-items:flex-start;gap:10px}
+
+  /* View tabs */
+  .vtabs{width:100%}
+  .vtab{flex:1;text-align:center;padding:7px 6px;font-size:12px}
+
+  /* Currency */
+  .crow{flex-direction:column}
+  .ccheck{width:100%;justify-content:center}
+
+  /* Auth */
+  .auth-card{padding:28px 20px}
+  .auth-logo{font-size:24px}
+
+  /* Modal */
+  .modal{padding:18px;border-radius:12px}
+  .mhdr{margin-bottom:16px}
+
+  /* User card */
+  .u-acts{width:100%;justify-content:flex-end}
+
+  /* Settings rows */
+  .srow{flex-direction:column;gap:10px}
+
+  /* Cat items */
+  .cat-item{padding:10px 12px}
+  .add-row{flex-direction:column}
+  .add-row .fi,.add-row .btn{width:100%;min-width:unset;justify-content:center}
+
+  /* Table */
+  td,th{font-size:12px;padding:9px 9px}
+
+  /* MS dropdown */
+  .ms-dropdown{max-height:160px}
+
+  /* Toast */
+  #toast{left:16px;right:16px;transform:translateX(0) translateY(80px);max-width:none;white-space:normal}
+  #toast.show{transform:translateX(0) translateY(0)}
+}
+@media(max-width:400px){
+  .stats-grid{grid-template-columns:1fr}
+  .igrid{grid-template-columns:1fr}
+  .vtab{font-size:11px;padding:7px 4px}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Hitler Ads</div>
+    <div class="auth-sub">Ad Spend Intelligence Panel</div>
+    <div class="a-field">
+      <label class="a-lbl">Username</label>
+      <input type="text" class="a-inp" id="au" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="a-field" style="margin-bottom:20px">
+      <label class="a-lbl">Password</label>
+      <input type="password" class="a-inp" id="ap" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="a-err" id="a-err">Invalid username or password.</div>
+    <button class="btn-login" onclick="doLogin()">Sign In →</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="obg" id="obg" onclick="closeSidebar()"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="s-logo">
+      <div class="logo-t">Hitler Ads</div>
+      <div class="logo-s">Ad Spend Panel</div>
+    </div>
+    <div class="s-user">
+      <div class="s-av" id="s-av">A</div>
+      <div>
+        <div class="s-uname" id="s-nm">Admin</div>
+        <div class="s-urole" id="s-rl">Main Admin</div>
+      </div>
+    </div>
+    <nav class="s-nav">
+      <div class="nav-sec">Main</div>
+      <div class="nav-item active" onclick="gp('dashboard')"><span class="nav-icon">📊</span>Dashboard</div>
+      <div class="nav-item" onclick="gp('entry')"><span class="nav-icon">➕</span>Spend Entry</div>
+      <div class="nav-item" onclick="gp('reports')"><span class="nav-icon">📁</span>Reports</div>
+      <div class="nav-sec ao">Admin</div>
+      <div class="nav-item ao" onclick="gp('users')"><span class="nav-icon">👥</span>Users</div>
+      <div class="nav-item ao" onclick="gp('settings')"><span class="nav-icon">⚙️</span>Settings</div>
+    </nav>
+    <div class="s-bot">
+      <button class="btn-out" onclick="doLogout()"><span>🚪</span>Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="tb-left">
+        <button class="ib hamburger" onclick="toggleSB()">☰</button>
+        <div class="tb-title" id="pt">Dashboard</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="ib" onclick="toggleTheme()" id="thbtn">🌙</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="card">
+          <div class="c-hdr"><div><div class="c-title">Filters</div></div></div>
+          <div class="frow">
+            <div class="fg"><label>From</label><input type="date" class="fi" id="df-f"></div>
+            <div class="fg"><label>To</label><input type="date" class="fi" id="df-t"></div>
+            <div class="fg"><label>Category</label><select class="fi" id="df-c"><option value="">All Categories</option></select></div>
+            <div class="fg"><label>Lead Cat</label><select class="fi" id="df-l"><option value="">All Lead Cats</option></select></div>
+            <div class="fg"><label>Currency</label>
+              <select class="fi" id="df-cu">
+                <option value="">All</option><option value="INR">INR</option><option value="USDT">USDT</option>
+              </select>
+            </div>
+            <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label>
+              <button class="btn btn-a" onclick="renderDash()">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="vtabs">
+          <button class="vtab active" onclick="setView('date',this)">Date</button>
+          <button class="vtab" onclick="setView('category',this)">Category</button>
+          <button class="vtab" onclick="setView('leadCategory',this)">Lead Source</button>
+        </div>
+
+        <div class="stats-grid" id="d-stats"></div>
+        <div class="igrid" id="d-insights"></div>
+
+        <div class="cgrid">
+          <div class="ccard"><div class="ctitle">📈 Spend Trend</div><div class="cwrap"><canvas id="ch-s"></canvas></div></div>
+          <div class="ccard"><div class="ctitle">🏷️ By Category</div><div class="cwrap"><canvas id="ch-c"></canvas></div></div>
+          <div class="ccard"><div class="ctitle">🎯 By Lead Source</div><div class="cwrap"><canvas id="ch-l"></canvas></div></div>
+        </div>
+
+        <div class="card">
+          <div class="c-hdr"><div><div class="c-title">Data Table</div><div class="c-sub" id="tbl-m">Grouped by Date</div></div></div>
+          <div class="tw"><table><thead><tr id="dth"></tr></thead><tbody id="dtb"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ENTRY -->
+      <div class="page" id="page-entry">
+        <div class="card">
+          <div class="c-hdr"><div><div class="c-title">New Spend Entry</div><div class="c-sub">Log ad spend & performance data</div></div></div>
+          <div class="fg2">
+            <div class="fgrp"><label>Date *</label><input type="date" class="finp" id="e-d"></div>
+            <div class="fgrp"><label>Category *</label><select class="finp" id="e-c"></select></div>
+            <div class="fgrp"><label>Lead Category *</label><select class="finp" id="e-l"></select></div>
+          </div>
+          <div style="margin-top:16px">
+            <div style="font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Currency *</div>
+            <div class="crow">
+              <label class="ccheck" onclick="togCurr(this,'INR')"><input type="checkbox" value="INR">🇮🇳 INR <span style="font-size:12px;font-weight:700;opacity:.7">+18% GST</span></label>
+              <label class="ccheck" onclick="togCurr(this,'USDT')"><input type="checkbox" value="USDT">₮ USDT <span style="font-size:12px;font-weight:700;opacity:.7">+10% Comm</span></label>
+            </div>
+          </div>
+          <div class="csec" id="inr-s">
+            <div class="ssec">
+              <div class="ssec-t">🇮🇳 INR Spend</div>
+              <div class="fg2"><div class="fgrp"><label>INR Amount</label><input type="number" class="finp" id="e-inr" placeholder="0.00" oninput="cINR()"></div></div>
+              <div class="calc-p" id="inr-p">Enter INR amount to preview</div>
+            </div>
+          </div>
+          <div class="csec" id="usdt-s">
+            <div class="ssec">
+              <div class="ssec-t">₮ USDT Spend</div>
+              <div class="fg2">
+                <div class="fgrp"><label>USDT Amount</label><input type="number" class="finp" id="e-usdt" placeholder="0.00" oninput="cUSDT()"></div>
+                <div class="fgrp"><label>USDT Rate (INR)</label><input type="number" class="finp" id="e-ur" placeholder="97" oninput="cUSDT()"></div>
+              </div>
+              <div class="calc-p" id="usdt-p">Enter USDT amount to preview</div>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <div class="fg2">
+              <div class="fgrp"><label>Leads</label><input type="number" class="finp" id="e-le" placeholder="0"></div>
+              <div class="fgrp"><label>Signups</label><input type="number" class="finp" id="e-su" placeholder="0"></div>
+              <div class="fgrp"><label>Conversions</label><input type="number" class="finp" id="e-cv" placeholder="0"></div>
+              <div class="fgrp"><label>Deposit (INR)</label><input type="number" class="finp" id="e-dp" placeholder="0.00"></div>
+              <div class="fgrp" style="grid-column:1/-1"><label>Notes</label><input type="text" class="finp" id="e-nt" placeholder="Optional notes..."></div>
+            </div>
+          </div>
+          <div class="f-actions">
+            <button class="btn btn-a" onclick="saveEntry()">💾 Save Entry</button>
+            <button class="btn btn-g" onclick="clearEF()">✕ Clear</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="c-hdr"><div><div class="c-title">Recent Entries</div><div class="c-sub">Last 20 entries</div></div></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Date</th><th>Category</th><th>Lead Cat</th><th>Curr</th><th>INR Final</th><th>USDT Final</th><th>Total</th><th>Leads</th><th>SU</th><th>Conv</th><th>Dep</th><th>Actions</th></tr></thead>
+              <tbody id="rc-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="page" id="page-reports">
+        <div class="card">
+          <div class="c-hdr"><div><div class="c-title">Reports & Export</div></div></div>
+          <div class="frow">
+            <div class="fg"><label>From</label><input type="date" class="fi" id="rf-f"></div>
+            <div class="fg"><label>To</label><input type="date" class="fi" id="rf-t"></div>
+            <div class="fg"><label>Category</label><select class="fi" id="rf-c"><option value="">All</option></select></div>
+            <div class="fg"><label>Lead Cat</label><select class="fi" id="rf-l"><option value="">All</option></select></div>
+            <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-a" onclick="renderRep()">Apply</button></div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-gr" onclick="expExcel()">📊 Export Excel</button>
+            <button class="btn btn-g" onclick="expCSV()">📄 Export CSV</button>
+          </div>
+        </div>
+        <div class="stats-grid" id="r-stats"></div>
+        <div class="card">
+          <div class="c-hdr"><div><div class="c-title">Report Data</div><div class="c-sub" id="r-cnt"></div></div></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Date</th><th>Cat</th><th>Lead Cat</th><th>INR</th><th>GST</th><th>INR Final</th><th>USDT</th><th>Rate</th><th>Conv INR</th><th>Comm</th><th>USDT Final</th><th>Total</th><th>Leads</th><th>SU</th><th>Conv</th><th>Dep</th><th>CPL</th><th>CPSU</th><th>CPC</th></tr></thead>
+              <tbody id="r-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="page" id="page-users">
+        <div class="card">
+          <div class="c-hdr">
+            <div><div class="c-title">User Management</div><div class="c-sub">Create & manage sub-users</div></div>
+            <button class="btn btn-a" onclick="openUM()">+ Add User</button>
+          </div>
+          <div id="u-list"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="card">
+          <div class="c-hdr"><div><div class="c-title">System Settings</div></div></div>
+
+          <div class="ss">
+            <div class="ss-t">💱 Currency</div>
+            <div class="srow">
+              <div><div class="sl">USDT Rate (INR)</div><div class="sd">Default: 1 USDT = 97 INR</div></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="number" class="fi" id="s-rt" style="width:110px" value="97">
+                <button class="btn btn-a btn-sm" onclick="saveSets()">Save</button>
+              </div>
+            </div>
+            <div class="srow">
+              <div><div class="sl">Spend Alert Limit (INR)</div><div class="sd">Alert when total spend exceeds</div></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="number" class="fi" id="s-lim" style="width:130px" placeholder="e.g. 100000">
+                <button class="btn btn-a btn-sm" onclick="saveSets()">Save</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- AD CATEGORIES -->
+          <div class="ss">
+            <div class="ss-t">🏷️ Ad Categories</div>
+            <div id="cat-list" class="cat-list"></div>
+            <div class="add-row" style="margin-top:12px">
+              <input type="text" class="fi" id="nc" placeholder="New category name...">
+              <button class="btn btn-a btn-sm" onclick="addCat()">+ Add Category</button>
+            </div>
+          </div>
+
+          <!-- LEAD CATEGORIES -->
+          <div class="ss">
+            <div class="ss-t">🎯 Lead Categories</div>
+            <div id="lc-list" class="cat-list"></div>
+            <div class="add-row" style="margin-top:12px">
+              <input type="text" class="fi" id="nlc" placeholder="New lead category name...">
+              <button class="btn btn-a btn-sm" onclick="addLC()">+ Add Lead Category</button>
+            </div>
+          </div>
+
+          <div class="ss">
+            <div class="ss-t">🎨 Appearance</div>
+            <div class="srow">
+              <div><div class="sl">Theme</div><div class="sd">Toggle dark / light mode</div></div>
+              <button class="btn btn-g btn-sm" onclick="toggleTheme()">Toggle Theme</button>
+            </div>
+            <div class="srow">
+              <div><div class="sl">Backup</div><div class="sd">Export all data as Excel</div></div>
+              <button class="btn btn-gr btn-sm" onclick="expExcel()">📊 Export Backup</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- USER MODAL -->
+<div class="moverlay" id="um">
+  <div class="modal">
+    <div class="mhdr">
+      <div class="m-title" id="um-t">Add User</div>
+      <button class="m-close" onclick="closeUM()">✕</button>
+    </div>
+    <div class="fg2">
+      <div class="fgrp"><label>Username *</label><input type="text" class="finp" id="um-u" placeholder="e.g. user1"></div>
+      <div class="fgrp"><label>Password *</label><input type="password" class="finp" id="um-p" placeholder="Password"></div>
+      <div class="fgrp"><label>Role</label>
+        <select class="finp" id="um-r" onchange="togRF()">
+          <option value="subuser">Sub User</option>
+          <option value="admin">Main Admin</option>
+        </select>
+      </div>
+      <div class="fgrp" id="um-sg"><label>Subdomain</label><input type="text" class="finp" id="um-sd" placeholder="e.g. user1"></div>
+    </div>
+    <!-- MULTI-SELECT CATEGORIES -->
+    <div id="um-perm" style="margin-top:16px">
+      <div class="fgrp" style="margin-bottom:14px">
+        <label>Allowed Categories</label>
+        <div class="ms-wrap" id="ms-cat-wrap"></div>
+        <div class="ms-sel-tags" id="ms-cat-tags"></div>
+      </div>
+      <div class="fgrp">
+        <label>Allowed Lead Categories</label>
+        <div class="ms-wrap" id="ms-lc-wrap"></div>
+        <div class="ms-sel-tags" id="ms-lc-tags"></div>
+      </div>
+    </div>
+    <div class="f-actions">
+      <button class="btn btn-a" onclick="saveUser()">💾 Save User</button>
+      <button class="btn btn-g" onclick="closeUM()">Cancel</button>
+    </div>
+    <input type="hidden" id="um-id">
+  </div>
+</div>
+
+<!-- EDIT ENTRY MODAL -->
+<div class="moverlay" id="em">
+  <div class="modal">
+    <div class="mhdr"><div class="m-title">Edit Entry</div><button class="m-close" onclick="closeEM()">✕</button></div>
+    <div class="fg2">
+      <div class="fgrp"><label>Date</label><input type="date" class="finp" id="em-d"></div>
+      <div class="fgrp"><label>Category</label><select class="finp" id="em-c"></select></div>
+      <div class="fgrp"><label>Lead Category</label><select class="finp" id="em-l"></select></div>
+      <div class="fgrp"><label>INR Spend</label><input type="number" class="finp" id="em-inr" oninput="updEC()"></div>
+      <div class="fgrp"><label>USDT Spend</label><input type="number" class="finp" id="em-usdt" oninput="updEC()"></div>
+      <div class="fgrp"><label>USDT Rate</label><input type="number" class="finp" id="em-ur" oninput="updEC()"></div>
+      <div class="fgrp"><label>Leads</label><input type="number" class="finp" id="em-le"></div>
+      <div class="fgrp"><label>Signups</label><input type="number" class="finp" id="em-su"></div>
+      <div class="fgrp"><label>Conversions</label><input type="number" class="finp" id="em-cv"></div>
+      <div class="fgrp"><label>Deposit</label><input type="number" class="finp" id="em-dp"></div>
+      <div class="fgrp" style="grid-column:1/-1"><label>Notes</label><input type="text" class="finp" id="em-nt"></div>
+    </div>
+    <div class="calc-p" id="em-cp" style="margin-top:12px"></div>
+    <div class="f-actions">
+      <button class="btn btn-a" onclick="saveEM()">💾 Update</button>
+      <button class="btn btn-g" onclick="closeEM()">Cancel</button>
+    </div>
+    <input type="hidden" id="em-id">
+  </div>
+</div>
+
+<!-- EDIT CATEGORY MODAL -->
+<div class="moverlay" id="ced">
+  <div class="modal" style="max-width:380px">
+    <div class="mhdr">
+      <div class="m-title" id="ced-t">Edit Category</div>
+      <button class="m-close" onclick="closeCED()">✕</button>
+    </div>
+    <div class="fgrp">
+      <label>Name *</label>
+      <input type="text" class="finp" id="ced-v" placeholder="Category name">
+    </div>
+    <div class="f-actions">
+      <button class="btn btn-a" onclick="saveCED()">💾 Save</button>
+      <button class="btn btn-g" onclick="closeCED()">Cancel</button>
+    </div>
+    <input type="hidden" id="ced-tp">
+    <input type="hidden" id="ced-old">
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════ DB ═══════════
+const DB={
+  get(k){try{return JSON.parse(localStorage.getItem('ha_'+k))}catch{return null}},
+  set(k,v){localStorage.setItem('ha_'+k,JSON.stringify(v))}
+};
+function initDB(){
+  if(!DB.get('users')) DB.set('users',[{id:'u1',username:'admin',password:'admin123',role:'admin',subdomain:'admin',allowedCats:[],allowedLCs:[]}]);
+  if(!DB.get('settings')) DB.set('settings',{usdtRate:97,spendLimit:0,theme:'dark'});
+  if(!DB.get('cats')) DB.set('cats',['Dafaxbets']);
+  if(!DB.get('lcs')) DB.set('lcs',['Api 1']);
+  if(!DB.get('entries')) DB.set('entries',[]);
+}
+
+// ═══════════ STATE ═══════════
+let CU=null, VM='date', CH={};
+
+// ═══════════ MULTI-SELECT ═══════════
+const MS={};
+function createMS(wrapId,tagsId,placeholder,allItems,selected=[]){
+  const wrap=document.getElementById(wrapId);
+  const tagsEl=document.getElementById(tagsId);
+  if(!wrap) return;
+  const id='ms_'+wrapId;
+  MS[id]={selected:[...selected],items:allItems,tagsEl,placeholder};
+
+  wrap.innerHTML=`
+    <button type="button" class="ms-trigger" id="${id}-btn" onclick="toggleMS('${id}')">
+      <span id="${id}-lbl">${placeholder}</span>
+      <span class="ms-arrow">▼</span>
+    </button>
+    <div class="ms-dropdown" id="${id}-dd">
+      <div class="ms-all-none">
+        <button onclick="msAll('${id}')">Select All</button>
+        <span style="color:var(--text3)">|</span>
+        <button onclick="msNone('${id}')">Clear All</button>
+      </div>
+      ${allItems.map(item=>`
+        <div class="ms-opt ${selected.includes(item)?'checked':''}" id="${id}-opt-${CSS.escape(item)}" onclick="toggleMSOpt('${id}','${escQ(item)}')">
+          <div class="ms-check">${selected.includes(item)?'✓':''}</div>
+          ${item}
+        </div>`).join('')}
+    </div>`;
+
+  renderMSTags(id);
+  // close on outside click
+  document.addEventListener('click', function handler(e){
+    const btn=document.getElementById(id+'-btn');
+    const dd=document.getElementById(id+'-dd');
+    if(!wrap.contains(e.target)){if(dd) dd.classList.remove('open');if(btn) btn.classList.remove('open')}
+  });
+}
+function toggleMS(id){
+  const btn=document.getElementById(id+'-btn');
+  const dd=document.getElementById(id+'-dd');
+  const open=dd.classList.contains('open');
+  // close all others
+  Object.keys(MS).forEach(k=>{
+    document.getElementById(k+'-dd')?.classList.remove('open');
+    document.getElementById(k+'-btn')?.classList.remove('open');
+  });
+  if(!open){dd.classList.add('open');btn.classList.add('open')}
+}
+function toggleMSOpt(id,item){
+  const m=MS[id];
+  const idx=m.selected.indexOf(item);
+  if(idx===-1) m.selected.push(item); else m.selected.splice(idx,1);
+  const optEl=document.getElementById(id+'-opt-'+CSS.escape(item));
+  if(optEl){
+    optEl.classList.toggle('checked',m.selected.includes(item));
+    optEl.querySelector('.ms-check').textContent=m.selected.includes(item)?'✓':'';
+  }
+  renderMSTags(id);
+}
+function msAll(id){
+  const m=MS[id];m.selected=[...m.items];
+  m.items.forEach(item=>{
+    const o=document.getElementById(id+'-opt-'+CSS.escape(item));
+    if(o){o.classList.add('checked');o.querySelector('.ms-check').textContent='✓'}
+  });
+  renderMSTags(id);
+}
+function msNone(id){
+  const m=MS[id];m.selected=[];
+  m.items.forEach(item=>{
+    const o=document.getElementById(id+'-opt-'+CSS.escape(item));
+    if(o){o.classList.remove('checked');o.querySelector('.ms-check').textContent=''}
+  });
+  renderMSTags(id);
+}
+function renderMSTags(id){
+  const m=MS[id];
+  const lbl=document.getElementById(id+'-lbl');
+  if(lbl) lbl.textContent=m.selected.length?`${m.selected.length} selected`:m.placeholder;
+  if(m.tagsEl){
+    m.tagsEl.innerHTML=m.selected.map(s=>`<span class="ms-tag">${s}<span class="ms-tag-del" onclick="toggleMSOpt('${id}','${escQ(s)}')">×</span></span>`).join('');
+  }
+}
+function getMSVal(wrapId){
+  const id='ms_'+wrapId;
+  return MS[id]?MS[id].selected:[];
+}
+function setMSVal(wrapId,vals){
+  const id='ms_'+wrapId;
+  if(!MS[id]) return;
+  MS[id].selected=[...vals];
+  MS[id].items.forEach(item=>{
+    const o=document.getElementById(id+'-opt-'+CSS.escape(item));
+    if(o){
+      const sel=vals.includes(item);
+      o.classList.toggle('checked',sel);
+      o.querySelector('.ms-check').textContent=sel?'✓':'';
+    }
+  });
+  renderMSTags(id);
+}
+
+// ═══════════ AUTH ═══════════
+function doLogin(){
+  const u=g('au').value.trim(),p=g('ap').value.trim();
+  const found=(DB.get('users')||[]).find(x=>x.username===u&&x.password===p);
+  if(!found){g('a-err').style.display='block';return}
+  g('a-err').style.display='none';
+  CU=found;
+  g('auth-screen').style.display='none';
+  g('app').classList.add('visible');
+  boot();
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const as=g('auth-screen');
+    if(as&&as.style.display!=='none') doLogin();
+    if(g('ced').classList.contains('open')) saveCED();
+    if(g('nc')===document.activeElement) addCat();
+    if(g('nlc')===document.activeElement) addLC();
+  }
+  if(e.key==='Escape'){closeCED();closeEM();closeUM()}
+});
+function doLogout(){CU=null;g('auth-screen').style.display='flex';g('app').classList.remove('visible');g('au').value='';g('ap').value=''}
+
+// ═══════════ BOOT ═══════════
+function boot(){
+  const s=DB.get('settings')||{};
+  document.documentElement.setAttribute('data-theme',s.theme||'dark');
+  updTI();
+  g('s-av').textContent=CU.username[0].toUpperCase();
+  g('s-nm').textContent=CU.username;
+  g('s-rl').textContent=CU.role==='admin'?'Main Admin':'Sub User';
+  document.querySelectorAll('.ao').forEach(el=>el.style.display=CU.role==='admin'?'':'none');
+  fillSel();
+  g('e-d').value=tod();
+  const ur=g('e-ur');if(ur) ur.value=s.usdtRate||97;
+  renderDash();renderRC();renderUsers();renderSets();
+}
+
+// ═══════════ SELECTS ═══════════
+function aCats(){const all=DB.get('cats')||[];if(CU.role==='admin') return all;const a=CU.allowedCats||[];return a.length?all.filter(c=>a.includes(c)):all}
+function aLCs(){const all=DB.get('lcs')||[];if(CU.role==='admin') return all;const a=CU.allowedLCs||[];return a.length?all.filter(c=>a.includes(c)):all}
+function fillSel(){
+  const cats=aCats(),lcs=aLCs();
+  const map={'e-c':cats,'e-l':lcs,'em-c':cats,'em-l':lcs,'df-c':cats,'df-l':lcs,'rf-c':cats,'rf-l':lcs};
+  Object.entries(map).forEach(([id,items])=>{
+    const el=g(id);if(!el) return;
+    const isF=['df-c','df-l','rf-c','rf-l'].includes(id);
+    el.innerHTML=(isF?'<option value="">All</option>':'<option value="">Select...</option>');
+    items.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;el.appendChild(o)});
+  });
+}
+function getEnts(){
+  let e=DB.get('entries')||[];
+  if(CU.role!=='admin'){
+    const c=aCats(),l=aLCs();
+    e=e.filter(x=>c.includes(x.category)&&l.includes(x.leadCategory));
+  }
+  return e;
+}
+
+// ═══════════ NAV ═══════════
+const PTITLES={dashboard:'Dashboard',entry:'Spend Entry',reports:'Reports',users:'User Management',settings:'Settings'};
+function gp(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  g('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el=>{if(el.textContent.trim().startsWith(PTITLES[p].split(' ')[0])) el.classList.add('active')});
+  g('pt').textContent=PTITLES[p];
+  closeSidebar();
+  if(p==='dashboard') renderDash();
+  if(p==='entry'){fillSel();renderRC()}
+  if(p==='reports'){fillSel();renderRep()}
+  if(p==='users') renderUsers();
+  if(p==='settings') renderSets();
+}
+
+// ═══════════ SIDEBAR ═══════════
+function toggleSB(){g('sidebar').classList.toggle('open');g('obg').classList.toggle('show')}
+function closeSidebar(){g('sidebar').classList.remove('open');g('obg').classList.remove('show')}
+
+// ═══════════ THEME ═══════════
+function toggleTheme(){
+  const c=document.documentElement.getAttribute('data-theme');
+  const n=c==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);
+  const s=DB.get('settings')||{};DB.set('settings',{...s,theme:n});
+  updTI();setTimeout(()=>redrawCH(),100);
+}
+function updTI(){g('thbtn').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙'}
+
+// ═══════════ CURRENCY ═══════════
+function togCurr(el,t){
+  setTimeout(()=>{const c=el.querySelector('input').checked;el.classList.toggle('sel',c);g(t.toLowerCase()+'-s').classList.toggle('vis',c)},0);
+}
+function cINR(){
+  const v=pf('e-inr'),gst=v*.18,fin=v+gst;
+  g('inr-p').innerHTML=`Spend: <span>₹${f(v)}</span> + GST 18%: <span>₹${f(gst)}</span> = <b>Total: ₹${f(fin)}</b>`;
+}
+function cUSDT(){
+  const s=DB.get('settings')||{};
+  const v=pf('e-usdt'),rate=pf('e-ur')||s.usdtRate||97;
+  const conv=v*rate,comm=conv*.10,fin=conv+comm;
+  g('usdt-p').innerHTML=`<span>${f(v)}</span> USDT × <span>₹${rate}</span> = <span>₹${f(conv)}</span> + Comm 10%: <span>₹${f(comm)}</span> = <b>₹${f(fin)}</b>`;
+}
+function updEC(){
+  const inr=pf('em-inr'),usdt=pf('em-usdt'),rate=pf('em-ur')||97;
+  const iF=inr*1.18,uF=usdt*rate*1.10;
+  g('em-cp').innerHTML=`INR Final: <span>₹${f(iF)}</span> | USDT Final: <span>₹${f(uF)}</span> | <b>Total: ₹${f(iF+uF)}</b>`;
+}
+
+// ═══════════ SAVE ENTRY ═══════════
+function saveEntry(){
+  const s=DB.get('settings')||{};
+  const date=g('e-d').value,cat=g('e-c').value,lc=g('e-l').value;
+  if(!date||!cat||!lc){toast('Fill all required fields','error');return}
+  const iS=document.querySelector('.ccheck[onclick*="INR"]').classList.contains('sel');
+  const uS=document.querySelector('.ccheck[onclick*="USDT"]').classList.contains('sel');
+  if(!iS&&!uS){toast('Select at least one currency','error');return}
+  const inr=pf('e-inr'),inrG=inr*.18,inrF=inr+inrG;
+  const usdt=pf('e-usdt'),rate=pf('e-ur')||s.usdtRate||97;
+  const uC=usdt*rate,uCm=uC*.10,uF=uC+uCm;
+  const total=(iS?inrF:0)+(uS?uF:0);
+  const entry={
+    id:Date.now().toString(),date,category:cat,leadCategory:lc,
+    currencyType:[iS&&'INR',uS&&'USDT'].filter(Boolean),
+    spend:{inr:iS?inr:0,inrGST:iS?inrG:0,inrFinal:iS?inrF:0,usdt:uS?usdt:0,usdtRate:rate,usdtConvertedINR:uS?uC:0,usdtCommission:uS?uCm:0,usdtFinal:uS?uF:0,totalSpendINR:total},
+    leads:pi('e-le'),signups:pi('e-su'),conversions:pi('e-cv'),deposit:pf('e-dp'),notes:g('e-nt').value
+  };
+  const entries=DB.get('entries')||[];entries.push(entry);DB.set('entries',entries);
+  const s2=DB.get('settings')||{};
+  if(s2.spendLimit>0){const tot=entries.reduce((a,e)=>a+e.spend.totalSpendINR,0);if(tot>=s2.spendLimit) toast(`⚠️ Spend limit ₹${f(s2.spendLimit)} reached!`,'error')}
+  toast('Entry saved!','success');clearEF();renderRC();
+}
+function clearEF(){
+  g('e-d').value=tod();
+  g('e-c').selectedIndex=0;g('e-l').selectedIndex=0;
+  ['e-inr','e-usdt','e-le','e-su','e-cv','e-dp','e-nt'].forEach(id=>g(id).value='');
+  document.querySelectorAll('.ccheck').forEach(el=>{el.classList.remove('sel');el.querySelector('input').checked=false});
+  g('inr-s').classList.remove('vis');g('usdt-s').classList.remove('vis');
+  g('inr-p').textContent='Enter INR amount to preview';g('usdt-p').textContent='Enter USDT amount to preview';
+}
+
+// ═══════════ RECENT ═══════════
+function renderRC(){
+  const ents=getEnts().slice().reverse().slice(0,20);
+  const tb=g('rc-tb');
+  if(!ents.length){tb.innerHTML=eRow(12);return}
+  tb.innerHTML=ents.map(e=>`<tr>
+    <td>${e.date}</td><td>${e.category}</td><td>${e.leadCategory}</td>
+    <td>${(e.currencyType||[]).join('+')}</td>
+    <td>${e.spend.inrFinal?'₹'+f(e.spend.inrFinal):'-'}</td>
+    <td>${e.spend.usdtFinal?'₹'+f(e.spend.usdtFinal):'-'}</td>
+    <td><b>₹${f(e.spend.totalSpendINR)}</b></td>
+    <td>${e.leads}</td><td>${e.signups}</td><td>${e.conversions}</td><td>₹${f(e.deposit)}</td>
+    <td><div class="tda">
+      <button class="btn btn-y btn-xs" onclick="openEM('${e.id}')">✏️</button>
+      <button class="btn btn-r btn-xs" onclick="delEnt('${e.id}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+// ═══════════ DEL / EDIT ENTRY ═══════════
+function delEnt(id){
+  if(!confirm('Delete this entry?')) return;
+  DB.set('entries',(DB.get('entries')||[]).filter(e=>e.id!==id));
+  toast('Deleted','success');renderRC();renderDash();
+}
+function openEM(id){
+  const e=(DB.get('entries')||[]).find(x=>x.id===id);if(!e) return;
+  fillSel();
+  g('em-d').value=e.date;g('em-c').value=e.category;g('em-l').value=e.leadCategory;
+  g('em-inr').value=e.spend.inr||'';g('em-usdt').value=e.spend.usdt||'';g('em-ur').value=e.spend.usdtRate||97;
+  g('em-le').value=e.leads;g('em-su').value=e.signups;g('em-cv').value=e.conversions;g('em-dp').value=e.deposit;g('em-nt').value=e.notes||'';
+  g('em-id').value=id;updEC();g('em').classList.add('open');
+}
+function closeEM(){g('em').classList.remove('open')}
+function saveEM(){
+  const s=DB.get('settings')||{};
+  const id=g('em-id').value;
+  let ents=DB.get('entries')||[];
+  const idx=ents.findIndex(e=>e.id===id);if(idx===-1) return;
+  const inr=pf('em-inr'),inrG=inr*.18,inrF=inr+inrG;
+  const usdt=pf('em-usdt'),rate=pf('em-ur')||s.usdtRate||97;
+  const uC=usdt*rate,uCm=uC*.10,uF=uC+uCm;
+  ents[idx]={...ents[idx],date:g('em-d').value,category:g('em-c').value,leadCategory:g('em-l').value,
+    currencyType:[inr>0&&'INR',usdt>0&&'USDT'].filter(Boolean),
+    spend:{inr,inrGST:inrG,inrFinal:inrF,usdt,usdtRate:rate,usdtConvertedINR:uC,usdtCommission:uCm,usdtFinal:uF,totalSpendINR:inrF+uF},
+    leads:pi('em-le'),signups:pi('em-su'),conversions:pi('em-cv'),deposit:pf('em-dp'),notes:g('em-nt').value};
+  DB.set('entries',ents);closeEM();toast('Updated!','success');renderRC();renderDash();
+}
+
+// ═══════════ DASHBOARD ═══════════
+function setView(m,btn){VM=m;document.querySelectorAll('.vtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderDash()}
+function renderDash(){
+  let ents=getEnts();
+  ents=applyF(ents,g('df-f')?.value,g('df-t')?.value,g('df-c')?.value,g('df-l')?.value,g('df-cu')?.value);
+  rStats(ents,'d-stats');rInsights(ents);rDashTbl(ents);rCharts(ents);
+}
+function applyF(ents,fr,to,cat,lc,cur){
+  return ents.filter(e=>{
+    if(fr&&e.date<fr) return false;
+    if(to&&e.date>to) return false;
+    if(cat&&e.category!==cat) return false;
+    if(lc&&e.leadCategory!==lc) return false;
+    if(cur&&!(e.currencyType||[]).includes(cur)) return false;
+    return true;
+  });
+}
+function agg(ents){
+  const tI=ents.reduce((a,e)=>a+(e.spend.inrFinal||0),0);
+  const tU=ents.reduce((a,e)=>a+(e.spend.usdt||0),0);
+  const tS=ents.reduce((a,e)=>a+(e.spend.totalSpendINR||0),0);
+  const le=ents.reduce((a,e)=>a+(e.leads||0),0);
+  const su=ents.reduce((a,e)=>a+(e.signups||0),0);
+  const cv=ents.reduce((a,e)=>a+(e.conversions||0),0);
+  const dp=ents.reduce((a,e)=>a+(e.deposit||0),0);
+  return{tI,tU,tS,le,su,cv,dp,cpl:le>0?tS/le:0,cpsu:su>0?tS/su:0,cpc:cv>0?tS/cv:0};
+}
+function rStats(ents,elId){
+  const a=agg(ents);
+  g(elId).innerHTML=`
+    <div class="sc"><div class="sc-lbl">Total Spend</div><div class="sc-val">₹${f(a.tS)}</div><div class="sc-sub">INR: ₹${f(a.tI)} | USDT: ${f(a.tU)}₮</div><div class="sc-badge bp">COMBINED</div></div>
+    <div class="sc"><div class="sc-lbl">Leads</div><div class="sc-val">${a.le}</div><div class="sc-sub">CPL: ₹${f(a.cpl)}</div><div class="sc-badge bg">TRACKED</div></div>
+    <div class="sc"><div class="sc-lbl">Signups</div><div class="sc-val">${a.su}</div><div class="sc-sub">CPSU: ₹${f(a.cpsu)}</div><div class="sc-badge by">TRACKED</div></div>
+    <div class="sc"><div class="sc-lbl">Conversions</div><div class="sc-val">${a.cv}</div><div class="sc-sub">CPC: ₹${f(a.cpc)}</div><div class="sc-badge bg">CONV</div></div>
+    <div class="sc"><div class="sc-lbl">Deposit</div><div class="sc-val">₹${f(a.dp)}</div><div class="sc-sub">${ents.length} entries</div><div class="sc-badge bc">DEP</div></div>`;
+}
+function rInsights(ents){
+  if(!ents.length){g('d-insights').innerHTML='';return}
+  const best=grp=>{let bk='',bc=Infinity;Object.entries(grp).forEach(([k,es])=>{const a=agg(es);if(a.cpc>0&&a.cpc<bc){bc=a.cpc;bk=k}});return{k:bk,c:bc===Infinity?0:bc}};
+  const bd=best(gBy(ents,'date')),bc=best(gBy(ents,'category')),bl=best(gBy(ents,'leadCategory'));
+  g('d-insights').innerHTML=`
+    <div class="ic"><div class="ii">📅</div><div class="it">Best Day</div><div class="iv">${bd.k||'—'}</div><div class="is">CPC: ₹${f(bd.c)}</div><div class="ib2">BEST DAY</div></div>
+    <div class="ic"><div class="ii">🏆</div><div class="it">Top Category</div><div class="iv">${bc.k||'—'}</div><div class="is">CPC: ₹${f(bc.c)}</div><div class="ib2">TOP PERFORMER</div></div>
+    <div class="ic"><div class="ii">🎯</div><div class="it">Best Lead Source</div><div class="iv">${bl.k||'—'}</div><div class="is">CPC: ₹${f(bl.c)}</div><div class="ib2">BEST SOURCE</div></div>`;
+}
+function rDashTbl(ents){
+  let grp,key;
+  if(VM==='date'){grp=gBy(ents.slice().sort((a,b)=>a.date.localeCompare(b.date)),'date');key='Date';g('tbl-m').textContent='Grouped by Date'}
+  else if(VM==='category'){grp=gBy(ents,'category');key='Category';g('tbl-m').textContent='Grouped by Category'}
+  else{grp=gBy(ents,'leadCategory');key='Lead Source';g('tbl-m').textContent='Grouped by Lead Source'}
+  g('dth').innerHTML=`<th>${key}</th><th>Total Spend</th><th>INR Final</th><th>USDT Final</th><th>Leads</th><th>Signups</th><th>Conv</th><th>Deposit</th><th>CPL</th><th>CPSU</th><th>CPC</th>`;
+  const rows=Object.entries(grp).map(([k,es])=>({k,...agg(es)})).sort((a,b)=>b.tS-a.tS);
+  g('dtb').innerHTML=rows.map(r=>`<tr>
+    <td><b>${r.k}</b></td><td><b>₹${f(r.tS)}</b></td><td>₹${f(r.tI)}</td><td>₹${f(r.tU*(DB.get('settings')?.usdtRate||97))}</td>
+    <td>${r.le}</td><td>${r.su}</td><td>${r.cv}</td><td>₹${f(r.dp)}</td>
+    <td>${r.cpl?'₹'+f(r.cpl):'—'}</td><td>${r.cpsu?'₹'+f(r.cpsu):'—'}</td><td>${r.cpc?'₹'+f(r.cpc):'—'}</td>
+  </tr>`).join('')||`<tr><td colspan="11">${eCell()}</td></tr>`;
+}
+
+// ═══════════ CHARTS ═══════════
+function rCharts(ents){
+  const sorted=ents.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const bD=gBy(sorted,'date');
+  mkCh('ch-s','line',Object.keys(bD),Object.values(bD).map(e=>agg(e).tS),'Spend');
+  const bC=gBy(ents,'category');
+  mkCh('ch-c','bar',Object.keys(bC),Object.values(bC).map(e=>agg(e).tS),'Spend');
+  const bL=gBy(ents,'leadCategory');
+  mkCh('ch-l','doughnut',Object.keys(bL),Object.values(bL).map(e=>agg(e).tS),'Spend');
+}
+function mkCh(id,type,labels,data,label){
+  const canvas=g(id);if(!canvas) return;
+  if(CH[id]) CH[id].destroy();
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  const grid=dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
+  const txt=dark?'#8888aa':'#44447a';
+  const cols=['#5b52ff','#06b6d4','#22c55e','#f59e0b','#ec4899','#f97316','#a855f7','#14b8a6'];
+  CH[id]=new Chart(canvas,{
+    type,
+    data:{labels,datasets:[{label,data,backgroundColor:type==='line'?'rgba(91,82,255,.15)':cols.map(c=>c+'cc'),borderColor:type==='line'?'#5b52ff':cols,borderWidth:type==='line'?2:1.5,fill:type==='line',tension:.4,pointRadius:3,pointHoverRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:type!=='line',labels:{color:txt,font:{size:11,weight:'700'},boxWidth:12}}},
+      scales:type!=='doughnut'?{x:{ticks:{color:txt,maxRotation:45,font:{weight:'700'}},grid:{color:grid}},y:{ticks:{color:txt,font:{weight:'700'},callback:v=>'₹'+f(v)},grid:{color:grid}}}:{}}
+  });
+}
+function redrawCH(){const ents=getEnts();rCharts(ents)}
+
+// ═══════════ REPORTS ═══════════
+function renderRep(){
+  let ents=getEnts();
+  ents=applyF(ents,g('rf-f')?.value,g('rf-t')?.value,g('rf-c')?.value,g('rf-l')?.value,'');
+  ents.sort((a,b)=>a.date.localeCompare(b.date));
+  rStats(ents,'r-stats');
+  g('r-cnt').textContent=`${ents.length} entries`;
+  const cpcs=ents.filter(e=>e.conversions>0).map(e=>e.spend.totalSpendINR/e.conversions);
+  const bCPC=cpcs.length?Math.min(...cpcs):Infinity;
+  g('r-tb').innerHTML=ents.map(e=>{
+    const cpl=e.leads>0?e.spend.totalSpendINR/e.leads:0;
+    const cpsu=e.signups>0?e.spend.totalSpendINR/e.signups:0;
+    const cpc=e.conversions>0?e.spend.totalSpendINR/e.conversions:0;
+    return`<tr class="${cpc>0&&cpc===bCPC?'hl':''}">
+      <td>${e.date}</td><td>${e.category}</td><td>${e.leadCategory}</td>
+      <td>${e.spend.inr?'₹'+f(e.spend.inr):'-'}</td><td>${e.spend.inrGST?'₹'+f(e.spend.inrGST):'-'}</td><td>${e.spend.inrFinal?'₹'+f(e.spend.inrFinal):'-'}</td>
+      <td>${e.spend.usdt||'-'}</td><td>${e.spend.usdt?e.spend.usdtRate:'-'}</td>
+      <td>${e.spend.usdtConvertedINR?'₹'+f(e.spend.usdtConvertedINR):'-'}</td>
+      <td>${e.spend.usdtCommission?'₹'+f(e.spend.usdtCommission):'-'}</td>
+      <td>${e.spend.usdtFinal?'₹'+f(e.spend.usdtFinal):'-'}</td>
+      <td><b>₹${f(e.spend.totalSpendINR)}</b></td>
+      <td>${e.leads}</td><td>${e.signups}</td><td>${e.conversions}</td><td>₹${f(e.deposit)}</td>
+      <td>${cpl?'₹'+f(cpl):'—'}</td><td>${cpsu?'₹'+f(cpsu):'—'}</td><td>${cpc?'₹'+f(cpc):'—'}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="19">${eCell()}</td></tr>`;
+}
+function repEnts(){let e=getEnts();return applyF(e,g('rf-f')?.value,g('rf-t')?.value,g('rf-c')?.value,g('rf-l')?.value,'').sort((a,b)=>a.date.localeCompare(b.date))}
+
+// ═══════════ EXPORT ═══════════
+function expExcel(){
+  const ents=repEnts();
+  const rows=ents.map(e=>{
+    const cpl=e.leads>0?e.spend.totalSpendINR/e.leads:0;
+    const cpsu=e.signups>0?e.spend.totalSpendINR/e.signups:0;
+    const cpc=e.conversions>0?e.spend.totalSpendINR/e.conversions:0;
+    return{'Date':e.date,'Category':e.category,'Lead Category':e.leadCategory,'INR Spend':e.spend.inr,'GST(18%)':e.spend.inrGST,'INR Final':e.spend.inrFinal,'USDT Spend':e.spend.usdt,'USDT Rate':e.spend.usdtRate,'USDT Converted':e.spend.usdtConvertedINR,'USDT Commission':e.spend.usdtCommission,'USDT Final':e.spend.usdtFinal,'Total Spend(INR)':e.spend.totalSpendINR,'Leads':e.leads,'Signups':e.signups,'Conversions':e.conversions,'Deposit':e.deposit,'CPL':+cpl.toFixed(2),'CPSU':+cpsu.toFixed(2),'CPC':+cpc.toFixed(2),'Notes':e.notes||''};
+  });
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Entries');
+  if(CU.role==='admin'){
+    const us=(DB.get('users')||[]).map(u=>({Username:u.username,Role:u.role,Subdomain:u.subdomain||'','Allowed Cats':(u.allowedCats||[]).join(', '),'Allowed LCs':(u.allowedLCs||[]).join(', ')}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(us),'Users');
+    const s=DB.get('settings')||{};
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{'USDT Rate':s.usdtRate,'Spend Limit':s.spendLimit}]),'Settings');
+  }
+  const a=agg(ents);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{'Total Spend':a.tS,'Leads':a.le,'Signups':a.su,'Conversions':a.cv,'Deposit':a.dp,'Avg CPL':+a.cpl.toFixed(2),'Avg CPSU':+a.cpsu.toFixed(2),'Avg CPC':+a.cpc.toFixed(2)}]),'Summary');
+  XLSX.writeFile(wb,`HitlerAds_${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast('Excel exported!','success');
+}
+function expCSV(){
+  const ents=repEnts();
+  const hdr='Date,Category,Lead Category,INR Spend,GST,INR Final,USDT Spend,USDT Rate,USDT Converted,USDT Commission,USDT Final,Total Spend INR,Leads,Signups,Conversions,Deposit,CPL,CPSU,CPC,Notes';
+  const rows=ents.map(e=>{
+    const cpl=e.leads>0?e.spend.totalSpendINR/e.leads:0;
+    const cpsu=e.signups>0?e.spend.totalSpendINR/e.signups:0;
+    const cpc=e.conversions>0?e.spend.totalSpendINR/e.conversions:0;
+    return[e.date,e.category,e.leadCategory,e.spend.inr,e.spend.inrGST,e.spend.inrFinal,e.spend.usdt,e.spend.usdtRate,e.spend.usdtConvertedINR,e.spend.usdtCommission,e.spend.usdtFinal,e.spend.totalSpendINR,e.leads,e.signups,e.conversions,e.deposit,cpl.toFixed(2),cpsu.toFixed(2),cpc.toFixed(2),e.notes||''].join(',');
+  });
+  const blob=new Blob([[hdr,...rows].join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`HitlerAds_${new Date().toISOString().split('T')[0]}.csv`;a.click();
+  toast('CSV exported!','success');
+}
+
+// ═══════════ USERS ═══════════
+function renderUsers(){
+  if(CU.role!=='admin') return;
+  const users=DB.get('users')||[];
+  const el=g('u-list');
+  if(!users.length){el.innerHTML='<div class="empty"><div class="empty-icon">👤</div><div class="empty-t">No users yet</div></div>';return}
+  el.innerHTML=users.map(u=>`<div class="ucard">
+    <div class="uav">${u.username[0].toUpperCase()}</div>
+    <div class="u-info">
+      <div class="u-nm">${u.username}<span class="rbadge ${u.role==='admin'?'ra':'ru'}">${u.role==='admin'?'Admin':'Sub User'}</span></div>
+      <div class="u-mt">Sub: ${u.subdomain||'—'} · Cats: ${(u.allowedCats||[]).join(', ')||'All'} · LCs: ${(u.allowedLCs||[]).join(', ')||'All'}</div>
+    </div>
+    <div class="u-acts">
+      <button class="btn btn-y btn-sm" onclick="openUM('${u.id}')">✏️ Edit</button>
+      ${u.id!=='u1'?`<button class="btn btn-r btn-sm" onclick="delUser('${u.id}')">🗑️ Delete</button>`:''}
+    </div>
+  </div>`).join('');
+}
+function openUM(id){
+  g('um-t').textContent=id?'Edit User':'Add User';
+  const allCats=DB.get('cats')||[],allLCs=DB.get('lcs')||[];
+  let selCats=[],selLCs=[];
+  if(id){
+    const u=(DB.get('users')||[]).find(x=>x.id===id);if(!u) return;
+    g('um-u').value=u.username;g('um-p').value=u.password;
+    g('um-r').value=u.role;g('um-sd').value=u.subdomain||'';
+    g('um-id').value=id;
+    selCats=u.allowedCats||[];selLCs=u.allowedLCs||[];
+  } else {
+    ['um-u','um-p','um-sd'].forEach(id=>g(id).value='');
+    g('um-r').value='subuser';g('um-id').value='';
+  }
+  togRF();
+  // Build multi-selects
+  createMS('ms-cat-wrap','ms-cat-tags','Select categories...',allCats,selCats);
+  createMS('ms-lc-wrap','ms-lc-tags','Select lead categories...',allLCs,selLCs);
+  g('um').classList.add('open');
+}
+function closeUM(){g('um').classList.remove('open')}
+function togRF(){const r=g('um-r').value;g('um-perm').style.display=r==='admin'?'none':''}
+function saveUser(){
+  const username=g('um-u').value.trim(),password=g('um-p').value.trim();
+  const role=g('um-r').value,subdomain=g('um-sd').value.trim()||username;
+  if(!username||!password){toast('Username and password required','error');return}
+  const allowedCats=getMSVal('ms-cat-wrap');
+  const allowedLCs=getMSVal('ms-lc-wrap');
+  let users=DB.get('users')||[];
+  const editId=g('um-id').value;
+  if(editId){
+    const idx=users.findIndex(u=>u.id===editId);
+    if(idx!==-1) users[idx]={...users[idx],username,password,role,subdomain,allowedCats,allowedLCs};
+  } else {
+    if(users.find(u=>u.username===username)){toast('Username exists','error');return}
+    users.push({id:Date.now().toString(),username,password,role,subdomain,allowedCats,allowedLCs});
+  }
+  DB.set('users',users);closeUM();renderUsers();toast('User saved!','success');
+}
+function delUser(id){
+  if(id==='u1'){toast('Cannot delete main admin','error');return}
+  if(!confirm('Delete user?')) return;
+  DB.set('users',(DB.get('users')||[]).filter(u=>u.id!==id));
+  renderUsers();toast('Deleted','success');
+}
+
+// ═══════════ SETTINGS ═══════════
+function renderSets(){
+  const s=DB.get('settings')||{};
+  const sr=g('s-rt');if(sr) sr.value=s.usdtRate||97;
+  const sl=g('s-lim');if(sl) sl.value=s.spendLimit||'';
+  renderCatList();renderLCList();
+}
+function saveSets(){
+  const s=DB.get('settings')||{};
+  const rate=parseFloat(g('s-rt').value)||97;
+  const limit=parseFloat(g('s-lim').value)||0;
+  DB.set('settings',{...s,usdtRate:rate,spendLimit:limit});
+  const ur=g('e-ur');if(ur) ur.value=rate;
+  toast('Settings saved!','success');
+}
+
+// CAT LIST WITH EDIT+DELETE
+function renderCatList(){
+  const cats=DB.get('cats')||[];
+  const el=g('cat-list');
+  el.innerHTML=cats.length?cats.map(c=>`
+    <div class="cat-item">
+      <div class="cat-name">${esc(c)}</div>
+      <div class="cat-acts">
+        <button class="btn btn-y btn-xs" onclick="openCED('cat','${escQ(c)}')">✏️ Edit</button>
+        <button class="btn btn-r btn-xs" onclick="delCat('${escQ(c)}')">🗑️ Del</button>
+      </div>
+    </div>`).join(''):`<div style="color:var(--text3);font-size:13px;font-weight:700;padding:8px 0">No categories yet. Add one below.</div>`;
+}
+function renderLCList(){
+  const lcs=DB.get('lcs')||[];
+  const el=g('lc-list');
+  el.innerHTML=lcs.length?lcs.map(c=>`
+    <div class="cat-item">
+      <div class="cat-name">${esc(c)}</div>
+      <div class="cat-acts">
+        <button class="btn btn-y btn-xs" onclick="openCED('lc','${escQ(c)}')">✏️ Edit</button>
+        <button class="btn btn-r btn-xs" onclick="delLC('${escQ(c)}')">🗑️ Del</button>
+      </div>
+    </div>`).join(''):`<div style="color:var(--text3);font-size:13px;font-weight:700;padding:8px 0">No lead categories yet. Add one below.</div>`;
+}
+function addCat(){
+  const val=g('nc').value.trim();if(!val) return;
+  const cats=DB.get('cats')||[];
+  if(cats.includes(val)){toast('Already exists','error');return}
+  cats.push(val);DB.set('cats',cats);g('nc').value='';
+  renderCatList();fillSel();toast('Category added!','success');
+}
+function addLC(){
+  const val=g('nlc').value.trim();if(!val) return;
+  const lcs=DB.get('lcs')||[];
+  if(lcs.includes(val)){toast('Already exists','error');return}
+  lcs.push(val);DB.set('lcs',lcs);g('nlc').value='';
+  renderLCList();fillSel();toast('Lead category added!','success');
+}
+function delCat(cat){
+  if(!confirm(`Delete category "${cat}"?`)) return;
+  DB.set('cats',(DB.get('cats')||[]).filter(c=>c!==cat));
+  renderCatList();fillSel();toast('Deleted','success');
+}
+function delLC(lc){
+  if(!confirm(`Delete lead category "${lc}"?`)) return;
+  DB.set('lcs',(DB.get('lcs')||[]).filter(c=>c!==lc));
+  renderLCList();fillSel();toast('Deleted','success');
+}
+
+// EDIT CAT MODAL
+function openCED(type,old){
+  g('ced-t').textContent=type==='cat'?'Edit Ad Category':'Edit Lead Category';
+  g('ced-tp').value=type;g('ced-old').value=old;g('ced-v').value=old;
+  g('ced').classList.add('open');
+  setTimeout(()=>g('ced-v').focus(),100);
+}
+function closeCED(){g('ced').classList.remove('open')}
+function saveCED(){
+  const type=g('ced-tp').value,old=g('ced-old').value,nv=g('ced-v').value.trim();
+  if(!nv){toast('Name required','error');return}
+  if(type==='cat'){
+    let cats=DB.get('cats')||[];
+    if(cats.includes(nv)&&nv!==old){toast('Already exists','error');return}
+    DB.set('cats',cats.map(c=>c===old?nv:c));renderCatList();
+  } else {
+    let lcs=DB.get('lcs')||[];
+    if(lcs.includes(nv)&&nv!==old){toast('Already exists','error');return}
+    DB.set('lcs',lcs.map(c=>c===old?nv:c));renderLCList();
+  }
+  fillSel();closeCED();toast('Updated!','success');
+}
+
+// ═══════════ UTILS ═══════════
+function g(id){return document.getElementById(id)}
+function f(n){if(!n||isNaN(n)) return'0';return parseFloat(n).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function pf(id){return parseFloat(g(id)?.value)||0}
+function pi(id){return parseInt(g(id)?.value)||0}
+function tod(){return new Date().toISOString().split('T')[0]}
+function gBy(arr,key){return arr.reduce((a,i)=>{const k=i[key]||'Unknown';if(!a[k]) a[k]=[];a[k].push(i);return a},{})}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escQ(s){return s.replace(/'/g,"\\'").replace(/"/g,'&quot;')}
+function eRow(n){return`<tr><td colspan="${n}"><div class="empty"><div class="empty-icon">📭</div><div class="empty-t">No data yet</div></div></td></tr>`}
+function eCell(){return`<div class="empty"><div class="empty-icon">📭</div><div class="empty-t">No data yet</div></div>`}
+let _tt;
+function toast(msg,type='success'){
+  const t=g('toast');
+  t.textContent=(type==='success'?'✅ ':'❌ ')+msg;
+  t.className='show '+type;
+  clearTimeout(_tt);_tt=setTimeout(()=>t.className='',3000);
+}
+
+// ═══════════ INIT + SEED ═══════════
+initDB();
+(function seed(){
+  if((DB.get('entries')||[]).length) return;
+  const cats=DB.get('cats'),lcs=DB.get('lcs'),s=DB.get('settings')||{};
+  const now=new Date(),demo=[];
+  for(let i=0;i<14;i++){
+    const d=new Date(now);d.setDate(d.getDate()-i*2);
+    const cat=cats[i%cats.length],lc=lcs[i%lcs.length];
+    const inr=Math.floor(Math.random()*8000+2000);
+    const usdt=Math.floor(Math.random()*50+10);
+    const rate=s.usdtRate||97;
+    const iG=inr*.18,iF=inr+iG,uC=usdt*rate,uCm=uC*.10,uF=uC+uCm;
+    demo.push({id:(Date.now()+i).toString(),date:d.toISOString().split('T')[0],category:cat,leadCategory:lc,currencyType:['INR','USDT'],
+      spend:{inr,inrGST:iG,inrFinal:iF,usdt,usdtRate:rate,usdtConvertedINR:uC,usdtCommission:uCm,usdtFinal:uF,totalSpendINR:iF+uF},
+      leads:Math.floor(Math.random()*80+10),signups:Math.floor(Math.random()*40+5),conversions:Math.floor(Math.random()*20+2),deposit:Math.floor(Math.random()*15000+3000),notes:'Demo entry'});
+  }
+  DB.set('entries',demo);
+})();
+</script>
+</body>
+</html>
